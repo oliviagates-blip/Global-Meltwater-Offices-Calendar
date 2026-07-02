@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meltwater Global Meeting Planner</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap');
+
+:root{
+  --teal:#0097A7;
+  --teal-dark:#00474C;
+  --teal-deep:#00343A;
+  --ink:#122127;
+  --ink-soft:#5A6E73;
+  --paper:#F5F9FA;
+  --paper-raised:#FFFFFF;
+  --line:#DCE7E9;
+
+  --core:#127A56; --core-bg:#E1F3EA; --core-strong:#1E9E75;
+  --extended:#9C6A0A; --extended-bg:#FBEFD8; --extended-strong:#E0A63B;
+  --closed:#A83C46; --closed-bg:#FBE7E9;
+  --weekend:#63767B; --weekend-bg:#E9EFF0;
+  --holiday:#6A4A96; --holiday-bg:#EEE7F8;
+
+  --display:'Poppins',sans-serif;
+  --mono:'Roboto Mono',ui-monospace,SFMono-Regular,monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{background:var(--paper); color:var(--ink); font-family:var(--display); padding:18px 16px 40px;}
+.app{max-width:1180px; margin:0 auto;}
+
+/* HERO */
+.hero{
+  background:linear-gradient(120deg,var(--teal-deep) 0%,var(--teal-dark) 60%,var(--teal) 140%);
+  border-radius:16px; color:#fff; padding:18px 24px; position:relative; overflow:hidden;
+}
+.hero h1{margin:0 0 2px; font-size:20px; font-weight:700; letter-spacing:-0.01em;}
+.hero p{margin:0; font-size:12.5px; color:#D9F0F2; max-width:640px; line-height:1.4;}
+.eyebrow{font-family:var(--mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:#AEE3E7; margin-bottom:4px;}
+
+/* CONTROLS */
+.controls{
+  display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;
+  background:var(--paper-raised); border:1px solid var(--line); border-radius:12px;
+  padding:12px 16px; margin-top:10px;
+}
+.field{display:flex; flex-direction:column; gap:4px;}
+.field label{font-size:10px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-soft); font-weight:600;}
+.field select,.field input[type="date"]{
+  font-family:var(--display); font-size:13px; padding:6px 10px; border-radius:8px;
+  border:1.5px solid var(--line); background:#fff; color:var(--ink); min-width:170px;
+}
+.day-flag{margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--ink-soft); align-self:center; padding:5px 10px; border-radius:8px; background:var(--paper);}
+
+/* LEGEND */
+.legend{display:flex; gap:14px; flex-wrap:wrap; margin:10px 2px 6px; font-size:11px; color:var(--ink-soft);}
+.legend span{display:inline-flex; align-items:center; gap:5px;}
+.swatch{width:11px; height:11px; border-radius:3px; display:inline-block;}
+
+/* GRID */
+.grid-wrap{background:var(--paper-raised); border:1px solid var(--line); border-radius:14px; overflow:auto; margin-top:6px;}
+.grid{display:grid; grid-template-columns: 150px repeat(24, minmax(42px,1fr)); min-width:1158px; gap:1px; background:var(--line);}
+.cell{
+  background:var(--paper-raised);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--display); font-size:12px; height:36px; position:relative;
+}
+.corner{
+  position:sticky; top:0; left:0; z-index:6; background:var(--teal-deep); color:#fff;
+  font-family:var(--display); font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.05em;
+  justify-content:flex-start; padding-left:12px; height:30px;
+}
+.head{
+  position:sticky; top:0; z-index:5; background:var(--teal-dark); color:#EAF8F9; font-weight:400; height:30px; cursor:pointer; opacity:.85; font-size:11.5px;
+}
+.head.beam{background:var(--teal); color:#fff; opacity:1; font-weight:600;}
+.head.pinned{background:#fff; color:var(--teal-dark); opacity:1; font-weight:700;}
+.groupbar{
+  grid-column: 1 / -1; background:var(--teal-deep); color:#fff; font-family:var(--display);
+  font-size:10.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; padding:4px 12px; height:22px; display:flex; align-items:center;
+}
+.rowlabel{
+  position:sticky; left:0; z-index:4; background:var(--paper-raised); border-right:2px solid var(--line);
+  justify-content:flex-start; padding:0 10px; height:36px; font-family:var(--display); flex-direction:row; gap:7px;
+}
+.rowlabel .flag{font-size:15px;}
+.rowlabel .meta{display:flex; flex-direction:column; line-height:1.15; overflow:hidden;}
+.rowlabel .city{font-size:12px; font-weight:600; color:var(--ink); white-space:nowrap;}
+.rowlabel .tz{font-size:9px; color:var(--ink-soft); font-family:var(--mono);}
+.rowlabel .covers{font-size:8.5px; color:#93a3a7; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:110px;}
+
+.slot .hr{font-weight:500; font-size:12.5px; letter-spacing:.01em;}
+.slot.tight .hr{font-size:10px; letter-spacing:-0.01em;}
+.slot.dayshift::after{content:''; position:absolute; top:4px; right:5px; width:4px; height:4px; border-radius:50%; background:currentColor; opacity:.5;}
+.core{background:var(--core-bg); color:var(--core);}
+.extended{background:var(--extended-bg); color:var(--extended);}
+.closed{background:var(--closed-bg); color:var(--closed); opacity:.7;}
+.weekend{background:var(--weekend-bg); color:var(--weekend); opacity:.65;}
+.holiday{background:var(--holiday-bg); color:var(--holiday); opacity:.8;}
+.beam{box-shadow:inset 0 0 0 1px rgba(0,71,76,0.28);}
+.pinned{box-shadow:inset 0 0 0 2px var(--teal-dark) !important; font-weight:700 !important;}
+.ref-col{box-shadow:inset 0 0 0 2px var(--teal);}
+.hl-bright{background:var(--core-strong) !important; color:#fff !important; opacity:1 !important; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.5);}
+.hl-bright .hr{font-weight:700 !important;}
+.hl-dim{opacity:.22 !important; filter:grayscale(0.5);}
+
+/* SELECTED PANEL */
+.selected-panel{
+  margin-top:10px; background:var(--teal-dark); color:#EAF8F9; border-radius:10px; padding:12px 16px;
+  font-family:var(--display); font-size:12px; line-height:1.6;
+}
+.selected-panel .hint{opacity:.75; font-style:italic;}
+.sp-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
+.sp-time{font-family:var(--mono); font-size:15px; font-weight:700; color:#fff;}
+.sp-pin{font-size:10.5px; padding:3px 9px; border-radius:999px; background:rgba(255,255,255,0.12); color:#EAF8F9; cursor:pointer; border:1px solid rgba(255,255,255,0.25);}
+.sp-pin.is-pinned{background:#fff; color:var(--teal-dark); font-weight:600;}
+.sp-groups{display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;}
+.sp-col h4{margin:0 0 5px; font-size:10px; text-transform:uppercase; letter-spacing:.06em; opacity:.75; font-weight:600;}
+.sp-col .names{font-size:12px; line-height:1.7;}
+.sp-col.avail h4{color:#8CE0B8;}
+.sp-col.stretch h4{color:#F2C97A;}
+.sp-col.no h4{color:#F0A2AA;}
+@media (max-width:640px){ .sp-groups{grid-template-columns:1fr;} }
+
+/* HOWTO */
+.howto{margin-top:12px; background:var(--paper-raised); border:1px solid var(--line); border-radius:12px; padding:2px 16px;}
+.howto summary{cursor:pointer; padding:10px 0; font-weight:600; font-size:13px; color:var(--teal-dark); list-style:none;}
+.howto summary::-webkit-details-marker{display:none;}
+.howto summary::before{content:"→  "; font-family:var(--mono);}
+.howto[open] summary::before{content:"↓  ";}
+.steps{padding:2px 0 14px; display:grid; gap:10px;}
+.step{display:flex; gap:10px;}
+.step .num{font-family:var(--mono); font-weight:700; color:var(--teal); font-size:12px; min-width:20px;}
+.step .txt b{display:block; font-size:12.5px; margin-bottom:1px;}
+.step .txt span{font-size:12px; color:var(--ink-soft); line-height:1.45;}
+
+.notes{margin-top:12px; font-size:10.5px; color:var(--ink-soft); line-height:1.6; border-top:1px solid var(--line); padding-top:10px;}
+.notes b{color:var(--ink);}
+
+@media (max-width:720px){
+  .rowlabel{width:140px;}
+  .grid{grid-template-columns:140px repeat(24, minmax(36px,1fr));}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="hero">
+    <div class="eyebrow">Meltwater · APAC Enablement</div>
+    <h1>Global Meeting Planner</h1>
+    <p>11 timezones covering every Meltwater office, grouped by Super Area. Hover to preview, click to pin and see exactly who can and can't join.</p>
+  </div>
+
+  <div class="controls">
+    <div class="field"><label for="refSelect">I'm scheduling from</label><select id="refSelect"></select></div>
+    <div class="field"><label for="datePicker">Meeting date</label><input type="date" id="datePicker"></div>
+    <div class="day-flag" id="dayFlag">—</div>
+  </div>
+
+  <div class="legend">
+    <span><i class="swatch" style="background:var(--core-bg); box-shadow:inset 0 0 0 1px var(--core-strong)"></i>Core (9–5)</span>
+    <span><i class="swatch" style="background:var(--extended-bg); box-shadow:inset 0 0 0 1px var(--extended-strong)"></i>Early/late (7–9, 5–7)</span>
+    <span><i class="swatch" style="background:var(--closed-bg); box-shadow:inset 0 0 0 1px var(--closed)"></i>Outside hours</span>
+    <span><i class="swatch" style="background:var(--weekend-bg); box-shadow:inset 0 0 0 1px var(--weekend)"></i>Weekend</span>
+    <span><i class="swatch" style="background:var(--holiday-bg); box-shadow:inset 0 0 0 1px var(--holiday)"></i>Public holiday</span>
+  </div>
+
+  <div class="grid-wrap"><div class="grid" id="grid"></div></div>
+
+  <div class="selected-panel" id="selectedPanel"><span class="hint">Hover any hour in the grid to see it converted across every office →</span></div>
+
+  <details class="howto">
+    <summary>New to scheduling across time zones? Start here</summary>
+    <div class="steps">
+      <div class="step"><div class="num">01</div><div class="txt"><b>Set your city and date</b><span>Pick the office you're in and the date you're proposing. Offices merged into one row (see italic text under the city name) share that exact offset today, but check the footnotes for ones that drift apart around Oct/Nov.</span></div></div>
+      <div class="step"><div class="num">02</div><div class="txt"><b>Top row = your clock</b><span>The 24 columns are hours in your day. Every row below shows that same instant, already converted and coloured, for that timezone group.</span></div></div>
+      <div class="step"><div class="num">03</div><div class="txt"><b>Hover to preview, click to pin</b><span>Moving your mouse previews each hour live. Click a time to pin it — the panel below stays put so you can compare candidate times without losing your place.</span></div></div>
+      <div class="step"><div class="num">04</div><div class="txt"><b>Read the three columns</b><span>Once pinned, you'll see exactly who can meet, who's stretching (early/late but workable), and who can't — so you can try another time and see the trade-off instantly.</span></div></div>
+      <div class="step"><div class="num">05</div><div class="txt"><b>Watch the muted cells</b><span>Grey = weekend for that timezone. Purple = public holiday on the date you picked — treat as a hard no.</span></div></div>
+    </div>
+  </details>
+
+  <div class="notes">
+    <p><b>Rows are grouped by current UTC offset</b>, not by individual office, to keep this screenshot-friendly. Each row's italic subtitle lists the other offices sharing that offset today: <b>New York</b> also covers Atlanta, Boston, Charlotte, Miami, Manchester (NH), Washington D.C. and Toronto · <b>Paris</b> also covers Amsterdam, Berlin, Budapest, Gothenburg, Helsinki, Stockholm, Tampere and Vienna · <b>Singapore</b> also covers Hong Kong and Shanghai (China's public holidays differ substantially — check separately around Lunar New Year and Golden Week) · <b>Sydney</b> also covers Melbourne.</p>
+    <p><b>Offsets</b> reflect current DST status (mid‑2026). Several groupings will split apart or shift by an hour when the US/EU/Australia clocks change in Sep–Nov — recheck this tool then.</p>
+    <p><b>Public holidays</b> shown are for the representative city only and are major national holidays for 2026. Dates marked <b>~</b> follow lunar/religious calendars and are estimates — confirm locally before locking a date.</p>
+  </div>
+
+</div>
+
+<script>
+const offices = [
+  {name:"San Francisco", group:"AMER", flag:"🇺🇸", abbr:"PDT", offset:-7, weekend:[0,6], covers:"US Pacific"},
+  {name:"Austin", group:"AMER", flag:"🇺🇸", abbr:"CDT", offset:-5, weekend:[0,6], covers:"US Central"},
+  {name:"New York", group:"AMER", flag:"🇺🇸", abbr:"EDT", offset:-4, weekend:[0,6], covers:"also: Atlanta, Boston, Charlotte, Miami, Toronto +more"},
+  {name:"London", group:"EMEA", flag:"🇬🇧", abbr:"BST", offset:1, weekend:[0,6], covers:"UK"},
+  {name:"Paris", group:"EMEA", flag:"🇫🇷", abbr:"CEST", offset:2, weekend:[0,6], covers:"also: Amsterdam, Berlin, Budapest +5 more"},
+  {name:"Cape Town", group:"EMEA", flag:"🇿🇦", abbr:"SAST", offset:2, weekend:[0,6], covers:"South Africa (no DST)"},
+  {name:"Dubai", group:"EMEA", flag:"🇦🇪", abbr:"GST", offset:4, weekend:[0,6], covers:"UAE"},
+  {name:"India", group:"EMEA", flag:"🇮🇳", abbr:"IST", offset:5.5, weekend:[0,6], covers:"Hyderabad"},
+  {name:"Singapore", group:"APAC", flag:"🇸🇬", abbr:"SGT", offset:8, weekend:[0,6], covers:"also: Hong Kong, Shanghai"},
+  {name:"Tokyo", group:"APAC", flag:"🇯🇵", abbr:"JST", offset:9, weekend:[0,6], covers:"Japan"},
+  {name:"Sydney", group:"APAC", flag:"🇦🇺", abbr:"AEST", offset:10, weekend:[0,6], covers:"also: Melbourne"},
+];
+
+const holidays = {
+  "San Francisco": ["2026-01-01","2026-01-19","2026-02-16","2026-05-25","2026-06-19","2026-07-03","2026-09-07","2026-11-26","2026-12-25"],
+  "Austin": ["2026-01-01","2026-01-19","2026-02-16","2026-05-25","2026-06-19","2026-07-03","2026-09-07","2026-11-26","2026-12-25"],
+  "New York": ["2026-01-01","2026-01-19","2026-02-16","2026-05-25","2026-06-19","2026-07-03","2026-09-07","2026-11-26","2026-12-25"],
+  "London": ["2026-01-01","2026-04-03","2026-04-06","2026-05-04","2026-05-25","2026-08-31","2026-12-25","2026-12-28"],
+  "Paris": ["2026-01-01","2026-04-06","2026-05-01","2026-05-08","2026-05-14","2026-05-25","2026-07-14","2026-08-15","2026-11-01","2026-11-11","2026-12-25"],
+  "Cape Town": ["2026-01-01","2026-03-21","2026-04-03","2026-04-06","2026-04-27","2026-05-01","2026-06-16","2026-08-09","2026-09-24","2026-12-16","2026-12-25","2026-12-26"],
+  "Dubai": ["2026-01-01","2026-03-20","2026-03-21","2026-03-22","2026-05-27","2026-05-28","2026-05-29","2026-06-16","2026-08-25","2026-12-01","2026-12-02","2026-12-03"],
+  "India": ["2026-01-26","2026-03-03","2026-03-31","2026-04-14","2026-08-15","2026-10-02","2026-10-20","2026-11-08","2026-12-25"],
+  "Singapore": ["2026-01-01","2026-02-17","2026-02-18","2026-03-20","2026-04-03","2026-05-01","2026-05-27","2026-05-31","2026-08-09","2026-11-08","2026-12-25"],
+  "Tokyo": ["2026-01-01","2026-01-12","2026-02-11","2026-02-23","2026-03-20","2026-04-29","2026-05-03","2026-05-04","2026-05-05","2026-07-20","2026-08-11","2026-09-21","2026-09-23","2026-10-12","2026-11-03","2026-11-23"],
+  "Sydney": ["2026-01-01","2026-01-26","2026-04-03","2026-04-06","2026-04-25","2026-06-08","2026-10-05","2026-12-25","2026-12-28"],
+};
+
+const refSelect = document.getElementById('refSelect');
+const datePicker = document.getElementById('datePicker');
+const grid = document.getElementById('grid');
+const selectedPanel = document.getElementById('selectedPanel');
+const dayFlag = document.getElementById('dayFlag');
+
+offices.forEach((o,i)=>{
+  const opt = document.createElement('option');
+  opt.value = i; opt.textContent = `${o.flag} ${o.name}`;
+  refSelect.appendChild(opt);
+});
+refSelect.value = offices.findIndex(o=>o.name==="New York");
+
+function nextWeekday(target){
+  const d = new Date(); d.setHours(0,0,0,0);
+  let diff = (target - d.getDay() + 7) % 7;
+  if(diff===0) diff = 7;
+  d.setDate(d.getDate()+diff);
+  return d.toISOString().slice(0,10);
+}
+datePicker.value = nextWeekday(1);
+
+function fmt24(h,m){ return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`; }
+function fmtShort(h,m){
+  const ap = h<12 ? 'am':'pm';
+  let hh = h%12; if(hh===0) hh=12;
+  return m===0 ? `${hh}${ap}` : `${hh}:${String(m).padStart(2,'0')}${ap}`;
+}
+function fmtLong(h,m){
+  const ap = h<12 ? 'AM':'PM';
+  let hh = h%12; if(hh===0) hh=12;
+  return `${hh}:${String(m).padStart(2,'0')} ${ap}`;
+}
+
+function localFor(baseDateStr, hourRef, offsetDiffHours){
+  const [y,m,d] = baseDateStr.split('-').map(Number);
+  const totalMinutes = hourRef*60 + Math.round(offsetDiffHours*60);
+  return new Date(Date.UTC(y, m-1, d, 0, totalMinutes));
+}
+function isoOf(dt){ return dt.toISOString().slice(0,10); }
+function dayShiftOf(baseDateStr, dt){
+  const [y,m,d] = baseDateStr.split('-').map(Number);
+  const anchor = Date.UTC(y, m-1, d);
+  const dtDay = Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate());
+  return Math.round((dtDay - anchor) / 86400000);
+}
+
+function categoryFor(office, dt){
+  const iso = isoOf(dt);
+  const dow = dt.getUTCDay();
+  if(holidays[office.name] && holidays[office.name].includes(iso)) return 'holiday';
+  if(office.weekend.includes(dow)) return 'weekend';
+  const mins = dt.getUTCHours()*60 + dt.getUTCMinutes();
+  if(mins>=540 && mins<1020) return 'core';
+  if((mins>=420 && mins<540) || (mins>=1020 && mins<1140)) return 'extended';
+  return 'closed';
+}
+
+let activeHour = null;
+let pinnedHour = null;
+
+function build(){
+  const refIdx = parseInt(refSelect.value,10);
+  const ref = offices[refIdx];
+  const date = datePicker.value;
+  const d = new Date(date+'T00:00:00Z');
+  dayFlag.textContent = d.toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric', timeZone:'UTC'});
+
+  grid.innerHTML = '';
+  const corner = document.createElement('div');
+  corner.className = 'cell corner'; corner.textContent = '';
+  grid.appendChild(corner);
+
+  for(let h=0; h<24; h++){
+    const head = document.createElement('div');
+    head.className = 'cell head';
+    head.dataset.hour = h;
+    head.textContent = fmtShort(h,0);
+    head.addEventListener('mouseenter', ()=> previewHour(h));
+    head.addEventListener('click', ()=> togglePin(h));
+    grid.appendChild(head);
+  }
+
+  let lastGroup = null;
+  offices.forEach(o=>{
+    if(o.group !== lastGroup){
+      const bar = document.createElement('div');
+      bar.className = 'groupbar';
+      bar.textContent = o.group;
+      grid.appendChild(bar);
+      lastGroup = o.group;
+    }
+    const label = document.createElement('div');
+    label.className = 'cell rowlabel';
+    label.innerHTML = `<span class="flag">${o.flag}</span><span class="meta"><span class="city">${o.name}</span></span>`;
+    grid.appendChild(label);
+
+    for(let h=0; h<24; h++){
+      const dt = localFor(date, h, o.offset - ref.offset);
+      const cat = categoryFor(o, dt);
+      const lh = dt.getUTCHours(), lm = dt.getUTCMinutes();
+      const shift = dayShiftOf(date, dt);
+      const label = fmtShort(lh,lm);
+      const cell = document.createElement('div');
+      cell.className = `cell slot ${cat}${shift!==0 ? ' dayshift' : ''}${lm!==0 ? ' tight' : ''}`;
+      cell.dataset.hour = h;
+      cell.dataset.office = o.name;
+      if(o.name === ref.name) cell.classList.add('ref-col');
+      cell.innerHTML = `<span class="hr">${label}</span>`;
+      cell.title = `${o.name}: ${fmtLong(lh,lm)} on ${isoOf(dt)}${shift!==0 ? ` (${shift>0?'next':'previous'} day)` : ''} — ${cat}`;
+      cell.addEventListener('mouseenter', ()=> previewHour(h));
+      cell.addEventListener('click', ()=> togglePin(h));
+      grid.appendChild(cell);
+    }
+  });
+
+  if(pinnedHour!==null) renderHour(pinnedHour, true);
+  else if(activeHour!==null) renderHour(activeHour, false);
+  else selectedPanel.innerHTML = '<span class="hint">Hover any hour to preview it &middot; click to pin and compare who\'s available &rarr;</span>';
+}
+
+function clearHighlight(){
+  document.querySelectorAll('.slot').forEach(el=>{
+    el.classList.remove('beam','pinned','hl-bright','hl-dim');
+  });
+}
+
+function previewHour(h){
+  if(pinnedHour!==null) return; // ignore hover while pinned
+  activeHour = h;
+  renderHour(h, false);
+}
+
+function togglePin(h){
+  pinnedHour = (pinnedHour===h) ? null : h;
+  if(pinnedHour!==null) renderHour(pinnedHour, true);
+  else if(activeHour!==null) renderHour(activeHour, false);
+  else { clearHighlight(); selectedPanel.innerHTML = '<span class="hint">Hover any hour to preview it &middot; click to pin and compare who\'s available &rarr;</span>'; }
+}
+
+function renderHour(h, isPinned){
+  const refIdx = parseInt(refSelect.value,10);
+  const ref = offices[refIdx];
+  const date = datePicker.value;
+
+  const catFor = {};
+  offices.forEach(o=>{
+    const dt = localFor(date,h,o.offset-ref.offset);
+    catFor[o.name] = categoryFor(o,dt);
+  });
+
+  document.querySelectorAll('[data-hour]').forEach(el=>{
+    const match = parseInt(el.dataset.hour,10)===h;
+    el.classList.toggle('beam', match && !isPinned);
+    el.classList.toggle('pinned', match && isPinned);
+    if(el.classList.contains('slot')){
+      const isCore = match && catFor[el.dataset.office] === 'core';
+      const isOther = match && catFor[el.dataset.office] !== 'core';
+      el.classList.toggle('hl-bright', isCore);
+      el.classList.toggle('hl-dim', isOther);
+    }
+  });
+
+  const avail=[], stretch=[], no=[];
+  offices.forEach(o=>{
+    const dt = localFor(date,h,o.offset-ref.offset);
+    const cat = catFor[o.name];
+    const shift = dayShiftOf(date, dt);
+    const time = fmtLong(dt.getUTCHours(),dt.getUTCMinutes()) + (shift!==0 ? ` (${shift>0?'next':'prev'} day)` : '');
+    const entry = `${o.name} · ${time}`;
+    if(cat==='core') avail.push(entry);
+    else if(cat==='extended') stretch.push(entry);
+    else no.push(`${entry}${cat==='holiday'?' — holiday':cat==='weekend'?' — weekend':''}`);
+  });
+
+  selectedPanel.innerHTML = `
+    <div class="sp-head">
+      <span class="sp-time">${fmtLong(h,0)} in ${ref.name}</span>
+      <span class="sp-pin ${isPinned?'is-pinned':''}" id="spPinBtn">${isPinned ? '📌 Pinned — click a time to release' : 'Click a time to pin'}</span>
+    </div>
+    <div class="sp-groups">
+      <div class="sp-col avail"><h4>✅ Can meet (${avail.length})</h4><div class="names">${avail.join('<br>') || '—'}</div></div>
+      <div class="sp-col stretch"><h4>⚠️ Early/late (${stretch.length})</h4><div class="names">${stretch.join('<br>') || '—'}</div></div>
+      <div class="sp-col no"><h4>❌ Can't meet (${no.length})</h4><div class="names">${no.join('<br>') || '—'}</div></div>
+    </div>`;
+
+  const pinBtn = document.getElementById('spPinBtn');
+  if(pinBtn) pinBtn.addEventListener('click', ()=> togglePin(h));
+}
+
+refSelect.addEventListener('change', build);
+datePicker.addEventListener('change', build);
+build();
+</script>
+</body>
+</html>
